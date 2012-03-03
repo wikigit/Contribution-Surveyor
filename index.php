@@ -60,7 +60,7 @@ while ($row = mysql_fetch_array($result)) {
 -->
 <p>If you have any questions about Contribution Surveyor, please contact its author Derrick Coetzee at <a href="http://en.wikipedia.org/wiki/User_talk:Dcoetzee">his talk page on English Wikipedia</a>.</p>
 
-<p>The PHP source for Contribution Surveyor is available under the <a href="http://www.opensource.org/licenses/bsd-license.php">Simplified BSD License</a>. It must be on Toolserver to run. (<a href="../downloads/contribution_surveyor.tar.gz">.tar.gz</a>) (<a href="../downloads/contribution_surveyor.zip">.zip</a>)</p>
+<p>The PHP source for Contribution Surveyor is available under the <a href="http://www.opensource.org/licenses/bsd-license.php">Simplified BSD License</a>. It must be on Toolserver to run. (<a href="../downloads/contribution_surveyor.tar.gz">.tar.gz</a>) (<a href="../downloads/contribution_surveyor.zip">.zip</a>) Latest source code <a href="https://github.com/wikigit/Contribution-Surveyor">available from Github</a>.</p>
 
 </body>
 </html>
