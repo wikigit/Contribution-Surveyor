@@ -1,0 +1,10 @@
+Contribution Surveyor, created for Wikipedia:Contributor copyright
+investigations on the English Wikipedia, is a Toolserver tool used to
+analyze the contributions of users with a history of copyright
+violations. It isolates and ranks contributions that are most likely
+to be copyright violations. For more, see:
+
+http://toolserver.org/~dcoetzee/contributionsurveyor/index.php
+
+The PHP source for Contribution Surveyor is available under the
+Simplified (2-clause) BSD License. It must be on Toolserver to run.
