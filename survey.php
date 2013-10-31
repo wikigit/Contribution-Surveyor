@@ -60,6 +60,18 @@ function microtime_float()
     return ((float)$usec + (float)$sec);
 }
 
+/* Performs the specified query, or else kills the script with an error.
+   Allows insertion of debug prints of SQL queries for diagnosis. */
+function query($sql)
+{
+    /* print '<p><small>' . htmlspecialchars($sql) . '</small></p>'; */
+    $query_result = mysql_query($sql);
+    if (!$query_result) {
+        die(mysql_error());
+    }
+    return $query_result;
+}
+
 /* Build a URL for invoking the current script with the given set of
    parameters. */
 function get_params($user, $hide_reverts, $hide_minor_edits, $articles_per_section, $major_edit_char_count, $offset, $limit, $start_timestamp, $end_timestamp)
@@ -148,7 +160,7 @@ function report_progress($diff_info_table, $user_id, $user_name, $raw_timestamp,
 {
     $query = 'SELECT COUNT(*) AS revisions_scanned FROM ' . $diff_info_table . ' WHERE diffinfo_user=' . $user_id .
              ($user_id == 0 ? ("AND diffinfo_user_text = '" . mysql_real_escape_string($user_name) . "' ") : '');
-    $result2 = mysql_query($query) or die(mysql_error());
+    $result2 = query($query);
     $row2 = mysql_fetch_array($result2);
     $revisions_scanned = $row2['revisions_scanned'];
 
@@ -156,7 +168,7 @@ function report_progress($diff_info_table, $user_id, $user_name, $raw_timestamp,
              "WHERE rev_user=" . $user_id .
              ($user_id == 0 ? ("AND rev_user_text = '" . mysql_real_escape_string($user_name) . "' ") : '') .
              " AND page_namespace=0 AND page_id=rev_page";
-    $result2 = mysql_query($query) or die(mysql_error());
+    $result2 = query($query);
     $row2 = mysql_fetch_array($result2);
     $total_revisions = $row2['total_revisions'];
 
@@ -190,10 +202,10 @@ $user_name_url = urlencode(str_replace(' ', '_', $user_name));
 if (preg_match('/^[0-9][0-9]?[0-9]?\.[0-9][0-9]?[0-9]?\.[0-9][0-9]?[0-9]?\.[0-9][0-9]?[0-9]?$/', $user_name, $matches)) {
   $user_id = 0;
 } else {
-  $result = mysql_query("SELECT user_id FROM user WHERE user_name = '" . mysql_real_escape_string($user_name) . "'") or die(mysql_error());
+  $result = query("SELECT user_id FROM user WHERE user_name = '" . mysql_real_escape_string($user_name) . "'");
   if (!($row = mysql_fetch_array($result))) {
     $user_name = utf8_encode($user_name);
-    $result = mysql_query("SELECT user_id FROM user WHERE user_name = '" . mysql_real_escape_string($user_name) . "'") or die(mysql_error());
+    $result = query("SELECT user_id FROM user WHERE user_name = '" . mysql_real_escape_string($user_name) . "'");
     if (!($row = mysql_fetch_array($result))) {
       die ('User \'' . htmlspecialchars($user_name) . '\' not found.');
     }
@@ -211,22 +223,22 @@ for ($i=0; $i < $num_revisions; $i++) {
 }
 
 # Create table for caching reports, if necessary
-mysql_query("CREATE TABLE IF NOT EXISTS " . $diff_info_table . "(" .
-	    "   diffinfo_rev int unsigned NOT NULL PRIMARY KEY," .
-	    "   diffinfo_user int unsigned NOT NULL, INDEX(diffinfo_user)," .
-            "   diffinfo_user_text varchar(255) binary NOT NULL," .
-	    "   diffinfo_page int unsigned NOT NULL, INDEX(diffinfo_page)," .
-	    "   diffinfo_change int NOT NULL," .
-	    "   diffinfo_prev_rev int unsigned," .
-	    "   diffinfo_is_revert tinyint NOT NULL," .
-	    "   diffinfo_timestamp binary(14) NOT NULL" .
-	    ")") or die(mysql_error());
+query("CREATE TABLE IF NOT EXISTS " . $diff_info_table . "(" .
+      "   diffinfo_rev int unsigned NOT NULL PRIMARY KEY," .
+      "   diffinfo_user int unsigned NOT NULL, INDEX(diffinfo_user)," .
+      "   diffinfo_user_text varchar(255) binary NOT NULL," .
+      "   diffinfo_page int unsigned NOT NULL, INDEX(diffinfo_page)," .
+      "   diffinfo_change int NOT NULL," .
+      "   diffinfo_prev_rev int unsigned," .
+      "   diffinfo_is_revert tinyint NOT NULL," .
+      "   diffinfo_timestamp binary(14) NOT NULL" .
+      ")");
 
 # We scan in order of rev_id. Find the place where we left off last time.
 $query = "SELECT MAX(diffinfo_rev) AS starting_rev FROM " . $diff_info_table . " " .
          "WHERE diffinfo_user = " . $user_id . " " .
          ($user_id == 0 ? ("AND diffinfo_user_text = '" . mysql_real_escape_string($user_name) . "' ") : '');
-$result = mysql_query($query) or die(mysql_error());
+$result = query($query);
 while ($row = mysql_fetch_array($result)) {
     $starting_rev = $row['starting_rev'];
 }
@@ -247,7 +259,7 @@ $query = "SELECT page_id, rev_id, rev_timestamp from page, revision " .
          "AND page_namespace=0 " .
          "AND page_id=rev_page " .
          "AND rev_id > " . $starting_rev;
-$result = mysql_query($query) or die(mysql_error());
+$result = query($query);
 while (1) {
   $size_new = -1;
   $size_old = -1;
@@ -266,7 +278,7 @@ while (1) {
              "FROM revision WHERE rev_page=" . $row['page_id'] . " " .
              "AND rev_id <= " . $row['rev_id'] . " " .
              "ORDER BY rev_id DESC LIMIT " . $num_revisions;
-    $result2 = mysql_query($query);
+    $result2 = query($query);
 
     for ($i=0; $i < $num_revisions; $i++) {
       $sizes[$i] = 0;
@@ -324,7 +336,7 @@ while (1) {
                "FROM revision WHERE rev_page=" . $row_prefetch['page_id'] . " " .
                "AND rev_id <= " . $row_prefetch['rev_id'] . " " .
                "ORDER BY rev_id DESC LIMIT " . $num_revisions;
-      $result2_prefetch = mysql_query($query);
+      $result2_prefetch = query($query);
 
       for ($i=0; $i < $num_revisions; $i++) {
 	$sizes_prefetch[$i] = 0;
@@ -397,7 +409,7 @@ while (1) {
               $revid_old . "," .
               $is_revert . "," .
               $row['rev_timestamp'] . ")";
-  mysql_query($query) or die(mysql_error());
+  query($query);
 
   $revs_retrieved++;
 
@@ -473,12 +485,12 @@ $survey_articles_query_where =
   (is_null($end_timestamp) ? '' : 'AND diffinfo_timestamp <= ' . mysql_real_escape_string($end_timestamp)) . ' ';
 
 # Determine the number of results in this listing and the min/max timestamp.
-$result = mysql_query(
+$result = query(
   "SELECT COUNT(DISTINCT diffinfo_page) as count," . " " .
          "MIN(diffinfo_timestamp) as min_time," . " " .
          "MAX(diffinfo_timestamp) as max_time" . " " .
   "FROM " . $diff_info_table . " AS diffinfo " .
-  "WHERE " . $survey_articles_query_where) or die(mysql_error());
+  "WHERE " . $survey_articles_query_where);
 $row = mysql_fetch_array($result);
 $result_count = $row['count'];
 
@@ -495,6 +507,7 @@ $get_params_next = get_params($user_name, $hide_reverts, $hide_minor_edits, $art
 if ($output == 'wiki') {
   header("Content-Type: text/plain; charset=utf-8");
   header('Content-Disposition: attachment; filename="' . htmlspecialchars($user_name) . '.' . ($offset + 1) . "-" . ($offset + 1 + $limit) . ".txt" . '"');
+  echo json_decode('"\uFEFF"');
 } else if ($output == 'html') {
   header("Content-Type: text/html; charset=utf-8");
 }
@@ -615,14 +628,14 @@ if ($result_count > 0) {
    ordered by the size of the maximum change amount. This is the main way in
    which Contribution Surveyor brings to the front more likely copyvio. */
 $no_results = 1;
-$result = mysql_query("SELECT diffinfo_page, page_title, COUNT(*) AS count, " .
-		      "MAX(diffinfo_change) AS max_change " .
-		      "FROM " . $diff_info_table . " AS diffinfo, page " .
-                      "WHERE diffinfo_page = page.page_id " .
-                      "AND " . $survey_articles_query_where . ' ' .
-		      "GROUP BY diffinfo_page " .
-		      "ORDER BY MAX(diffinfo_change) DESC " .
-                      "LIMIT " . $offset . "," . $limit) or die(mysql_error());
+$result = query("SELECT diffinfo_page, page_title, COUNT(*) AS count, " .
+		"MAX(diffinfo_change) AS max_change " .
+		"FROM " . $diff_info_table . " AS diffinfo, page " .
+		"WHERE diffinfo_page = page.page_id " .
+		"AND " . $survey_articles_query_where . ' ' .
+		"GROUP BY diffinfo_page " .
+		"ORDER BY MAX(diffinfo_change) DESC " .
+		"LIMIT " . $offset . "," . $limit);
 $pageNum = $offset + 1;
 while ($row = mysql_fetch_array($result)) {
   $no_results = 0;
@@ -667,7 +680,7 @@ while ($row = mysql_fetch_array($result)) {
            "WHERE diffinfo_page=" . $row['diffinfo_page'] . ' ' .
            "AND " . $survey_articles_query_where . ' ' .
            "ORDER BY diffinfo_rev";
-  $result2 = mysql_query($query) or die(mysql_error());
+  $result2 = query($query);
   $edits_text = '';
   $is_creator = 0;
   while ($row2 = mysql_fetch_array($result2)) {
